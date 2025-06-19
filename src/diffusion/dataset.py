@@ -8,7 +8,7 @@ from torchvision import transforms
 class CustomImageDataset(Dataset):
     """Dataset for loading images from the data directory."""
     
-    def __init__(self, data_dir, image_size=64, train=True):
+    def __init__(self, data_dir, image_size=256, train=True):
         self.data_dir = data_dir
         self.image_size = image_size
         self.train = train
