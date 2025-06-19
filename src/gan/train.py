@@ -18,8 +18,8 @@ def train_gan_model():
     # Hyperparameters
     image_size = 256
     z_dim = 256
-    batch_size = 2  # For debugging; increase on better hardware
-    num_epochs = 50
+    batch_size = 64 
+    num_epochs = 200
     learning_rate = 2e-4
     checkpoint_dir = '/home/soltys/sztuczna_inteligencja/sem1/pgm/project-pgm/results/gan'
 
