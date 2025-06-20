@@ -20,10 +20,7 @@ class CustomImageDataset(Dataset):
                     self.image_paths.append(os.path.join(root, file))
         
         split_idx = int(0.8 * len(self.image_paths))
-        if train:
-            self.image_paths = self.image_paths#[:split_idx]
-        else:
-            self.image_paths = self.image_paths[split_idx:]
+        self.image_paths = self.image_paths
     
         self.transform = transforms.Compose([
             transforms.Resize(image_size),

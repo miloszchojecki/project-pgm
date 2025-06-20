@@ -7,7 +7,7 @@ import torchvision.models as models
 
 # Mapping Network
 class MappingNetwork(nn.Module):
-    def __init__(self, z_dim=256, w_dim=256, num_layers=4):
+    def __init__(self, z_dim=512, w_dim=512, num_layers=4):
         super(MappingNetwork, self).__init__()
         layers = []
         for _ in range(num_layers):
@@ -21,7 +21,7 @@ class MappingNetwork(nn.Module):
 
 # Modulated Convolution
 class ModulatedConv2d(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, w_dim=256, padding=1):
+    def __init__(self, in_channels, out_channels, kernel_size=3, w_dim=512, padding=1):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -74,9 +74,9 @@ class SynthesisBlock(nn.Module):
 
 # Generator
 class Generator(nn.Module):
-    def __init__(self, z_dim=256, w_dim=256, num_channels=[512, 512, 256, 128, 64, 32, 16], final_resolution=256):
+    def __init__(self, z_dim=512, w_dim=512, num_channels=[1024, 1024, 640, 640, 320, 320, 160, 80], final_resolution=256):
         super().__init__()
-        self.mapping = MappingNetwork(z_dim, w_dim)
+        self.mapping = MappingNetwork(z_dim, w_dim, num_layers=8)
         self.const = nn.Parameter(torch.randn(1, num_channels[0], 4, 4))
         self.blocks = nn.ModuleList([
             SynthesisBlock(num_channels[i], num_channels[i + 1], 4 * 2 ** (i + 1), final_resolution)
@@ -107,9 +107,9 @@ class MinibatchStdDev(nn.Module):
 
 # Discriminator
 class Discriminator(nn.Module):
-    def __init__(self, in_channels=3, base_channels=[16, 32, 64, 128, 256, 512]):
+    def __init__(self, in_channels=3, base_channels=[64, 128, 256, 512, 768, 896]):
         super().__init__()
-        self.blur = nn.AvgPool2d(2, stride=1)  # Blur instead of sharp edges
+        self.blur = nn.AvgPool2d(2, stride=1)
         layers = []
         ch = in_channels
         for out_ch in base_channels:
@@ -130,6 +130,7 @@ class Discriminator(nn.Module):
         x = self.net(x)
         x = x.view(x.size(0), -1)
         return self.fc(x)
+ 
 
 # Adaptive Discriminator Augmentation (ADA)
 class ADA:
