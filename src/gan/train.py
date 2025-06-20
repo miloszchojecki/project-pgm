@@ -5,7 +5,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from models import Generator, Discriminator, ADA
+from models import Generator, Discriminator, ADA, PerceptualLoss
 from dataset import CustomImageDataset
 
 def train_gan_model():
@@ -18,7 +18,7 @@ def train_gan_model():
     # Hyperparameters
     image_size = 256
     z_dim = 256
-    batch_size = 64 
+    batch_size = 16
     num_epochs = 200
     learning_rate = 2e-4
     checkpoint_dir = '/home/soltys/sztuczna_inteligencja/sem1/pgm/project-pgm/results/gan'
@@ -40,12 +40,23 @@ def train_gan_model():
     D = Discriminator().to(device)
     ada = ADA()
 
+    def print_model_summary(model, model_name):
+        total_params = sum(p.numel() for p in model.parameters())
+        trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(f"{model_name}")
+        print(f"  Total parameters: {total_params}")
+        print(f"  Trainable parameters: {trainable_params}")
+
+    print_model_summary(G, "Generator")
+    print_model_summary(D, "Discriminator")
+
     # Optimizers
     g_opt = torch.optim.Adam(G.parameters(), lr=learning_rate, betas=(0.0, 0.99))
     d_opt = torch.optim.Adam(D.parameters(), lr=learning_rate, betas=(0.0, 0.99))
 
     # Loss
     criterion = nn.BCEWithLogitsLoss()
+    perceptual_loss = PerceptualLoss().to(device)
 
     for epoch in range(num_epochs):
         G.train()
@@ -87,7 +98,8 @@ def train_gan_model():
             z = torch.randn(batch_size, z_dim).to(device)
             fake_images = G(z)
             d_fake = D(fake_images)
-            g_loss = criterion(d_fake, real_labels)
+            perceptual = perceptual_loss(fake_images, real_images)
+            g_loss = criterion(d_fake, real_labels) + 0.1 * perceptual
 
             g_opt.zero_grad()
             g_loss.backward()
