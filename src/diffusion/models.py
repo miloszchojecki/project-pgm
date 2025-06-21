@@ -26,7 +26,7 @@ class SmallDenoiserNetwork(nn.Module):
             nn.ReLU(),
             *[LinearResBlock(hidden_dim) for _ in range(resblocks)],
             nn.ReLU(),
-            nn.Linear(hidden_dim, 2)
+            nn.Linear(hidden_dim, 2),
         )
 
     def forward(self, x_t, t):
@@ -44,8 +44,8 @@ class LargeConvDenoiserNetwork(nn.Module):
         out_channels: int = 3,
         channels: list = [64, 128, 256, 512, 1024],
         layers_per_block: int = 2,
-        downblock: str = 'ResnetDownsampleBlock2D',
-        upblock: str = 'ResnetUpsampleBlock2D',
+        downblock: str = "ResnetDownsampleBlock2D",
+        upblock: str = "ResnetUpsampleBlock2D",
         add_attention: bool = True,
         attention_head_dim: int = 64,
         low_condition: bool = False,
@@ -103,4 +103,4 @@ class LargeConvDenoiserNetwork(nn.Module):
         if self.global_skip_connection:
             model_output[:, :3] = model_output[:, :3] + x_t
 
-        return model_output  
+        return model_output
