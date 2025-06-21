@@ -1,6 +1,7 @@
 import argparse
 import sys
 import os
+import subprocess
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -27,7 +28,9 @@ def main():
         # from vae.train import train_vae_model 
         # train_vae_model()
     elif args.model == "cnn":
-        os.system(f"python src/cnn/train.py --model {args.variant}")
+        env = os.environ.copy()
+        env['PYTHONPATH'] = str(PROJECT_ROOT / 'src')
+        subprocess.run([sys.executable, str(PROJECT_ROOT / 'src/cnn/train.py'), '--model', args.variant], env=env)
 
 if __name__ == "__main__":
     main()

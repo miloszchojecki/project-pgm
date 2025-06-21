@@ -69,7 +69,7 @@ def main():
     image_size = int(cfg.train.cnn.image_size)
     batch_size = int(cfg.train.cnn.batch_size)
     learning_rate = float(cfg.train.cnn.lr)
-    num_epochs = int(cfg.train.cnn.num_epochs)
+    num_epochs = int(cfg.train.cnn.num_epoch)
     log = cfg.train.cnn.log
     model_path = cfg.train.cnn.final_model[args.model]
 
@@ -83,7 +83,7 @@ def main():
         run = initialize_wandb(
             api_key=api_key,
             project_name=cfg.wandb.project_name,
-            exp_name="diffusion_training",
+            exp_name="cnn_training",
             group='cnn',
             config={
                 "image_size": image_size,
