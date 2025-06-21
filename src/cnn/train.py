@@ -11,6 +11,7 @@ from typing import Tuple
 from eval import validate_model
 from pathlib import Path
 from utils.utils import initialize_wandb
+from metrics import compute_metrics
 import os
 import wandb
 
@@ -23,9 +24,10 @@ def train_model(
     device: str,
     model_type: str,
     epoch: int,
-) -> Tuple[float, float]:
+) -> Tuple[float, float, list, list]:
     model.train()
     total_loss, correct, total = 0.0, 0, 0
+    all_preds, all_labels = [], []
 
     progress_bar = tqdm(
         train_loader, desc=f"[{model_type}] Epoch {epoch + 1}", leave=False
@@ -40,13 +42,17 @@ def train_model(
         optimizer.step()
 
         total_loss += loss.item()
-        correct += (outputs.argmax(1) == labels).sum().item()
+        predicted = outputs.argmax(1)
+        correct += (predicted == labels).sum().item()
         total += labels.size(0)
+        
+        all_preds.extend(predicted.cpu().numpy())
+        all_labels.extend(labels.cpu().numpy())
 
         acc = 100 * correct / total
         progress_bar.set_postfix(loss=total_loss / total, acc=f"{acc:.2f}%")
 
-    return total_loss / total, acc
+    return total_loss / total, acc, all_labels, all_preds
 
 
 def main():
@@ -94,28 +100,47 @@ def main():
         )
 
     for epoch in range(num_epochs):
-        train_loss, train_acc = train_model(
+        train_loss, train_acc, train_labels, train_preds = train_model(
             model, train_loader, criterion, optimizer, device, args.model, epoch
         )
+        
+        train_metrics = compute_metrics(train_labels, train_preds)
+        
         print(
-            f"[{args.model}] Epoch {epoch + 1} complete: Loss = {train_loss:.4f}, Accuracy = {train_acc:.2f}%"
+            f"[{args.model}] Epoch {epoch + 1} complete: Loss = {train_loss:.4f}, "
+            f"Accuracy = {train_acc:.2f}%, Precision = {train_metrics['precision']:.4f}, "
+            f"Recall = {train_metrics['recall']:.4f}, F1 = {train_metrics['f1']:.4f}"
         )
+        
         if log:
             wandb.log(
                 {
                     "epoch": epoch + 1,
                     "train_loss": train_loss,
                     "train_acc": train_acc,
+                    "train_precision": train_metrics['precision'],
+                    "train_recall": train_metrics['recall'],
+                    "train_f1": train_metrics['f1'],
                 }
             )
 
-    val_acc, labels, preds = validate_model(model, val_loader, device)
+    val_acc, val_labels, val_preds = validate_model(model, val_loader, device)
+    
+    val_metrics = compute_metrics(val_labels, val_preds)
+    
     print(f"[{args.model}] Validation Accuracy: {val_acc:.2f}%")
+    print(f"[{args.model}] Validation Precision: {val_metrics['precision']:.4f}")
+    print(f"[{args.model}] Validation Recall: {val_metrics['recall']:.4f}")
+    print(f"[{args.model}] Validation F1: {val_metrics['f1']:.4f}")
+    
     if log:
         wandb.log(
             {
                 "epoch": num_epochs,
                 "val_acc": val_acc,
+                "val_precision": val_metrics['precision'],
+                "val_recall": val_metrics['recall'],
+                "val_f1": val_metrics['f1'],
             }
         )
         if run is not None:
