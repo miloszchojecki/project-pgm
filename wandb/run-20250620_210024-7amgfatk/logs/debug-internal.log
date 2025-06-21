@@ -1,0 +1,15 @@
+{"time":"2025-06-20T21:00:24.453310406Z","level":"INFO","msg":"stream: starting","core version":"0.20.1","symlink path":"/home/kusnierz/repositories/project-pgm/wandb/run-20250620_210024-7amgfatk/logs/debug-core.log"}
+{"time":"2025-06-20T21:00:24.726865263Z","level":"INFO","msg":"stream: created new stream","id":"7amgfatk"}
+{"time":"2025-06-20T21:00:24.72762867Z","level":"INFO","msg":"stream: started","id":"7amgfatk"}
+{"time":"2025-06-20T21:00:24.727654896Z","level":"INFO","msg":"sender: started","stream_id":"7amgfatk"}
+{"time":"2025-06-20T21:00:24.727680846Z","level":"INFO","msg":"writer: Do: started","stream_id":"7amgfatk"}
+{"time":"2025-06-20T21:00:24.727622743Z","level":"INFO","msg":"handler: started","stream_id":"7amgfatk"}
+{"time":"2025-06-20T21:00:25.068231088Z","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-06-20T21:00:25.213823091Z","level":"INFO","msg":"stream: closing","id":"7amgfatk"}
+{"time":"2025-06-20T21:00:25.213877915Z","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-06-20T21:00:25.213995371Z","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-06-20T21:00:26.069133136Z","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-06-20T21:00:26.286006714Z","level":"INFO","msg":"handler: closed","stream_id":"7amgfatk"}
+{"time":"2025-06-20T21:00:26.286039462Z","level":"INFO","msg":"writer: Close: closed","stream_id":"7amgfatk"}
+{"time":"2025-06-20T21:00:26.286057417Z","level":"INFO","msg":"sender: closed","stream_id":"7amgfatk"}
+{"time":"2025-06-20T21:00:26.286147395Z","level":"INFO","msg":"stream: closed","id":"7amgfatk"}

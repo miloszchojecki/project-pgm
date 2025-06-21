@@ -4,32 +4,66 @@ import torch.nn as nn
 import numpy as np
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from .models import Generator, Discriminator, ADA, PerceptualLoss
+from pathlib import Path
+from utils.dataset import SingleClassDataset
+from utils.transform import create_transformation
+from utils.utils import initialize_wandb
+import wandb
+from omegaconf import OmegaConf
 
-from models import Generator, Discriminator, ADA, PerceptualLoss
-from dataset import CustomImageDataset
 
 def train_gan_model():
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+    params_path = PROJECT_ROOT / "params.yaml"
+    
+    api_key = os.getenv("WANDB_API_KEY")
+    if not api_key:
+        raise ValueError("No W&B API Key exported!")
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
 
-    torch.manual_seed(42)
-    np.random.seed(42)
+    torch.manual_seed(123)
+    np.random.seed(123)
 
     # Hyperparameters
-    image_size = 256
-    z_dim = 512
-    batch_size = 64
-    num_epochs = 200
-    learning_rate = 2e-4
-    checkpoint_dir = '/home/soltys/sztuczna_inteligencja/sem1/pgm/project-pgm/results/gan'
+    cfg = OmegaConf.load(params_path)
 
-    os.makedirs(checkpoint_dir, exist_ok=True)
+    gan_params = cfg.train.gan
 
-    # Dataset
-    data_dir = '/home/soltys/sztuczna_inteligencja/sem1/pgm/project-pgm/data'
+    z_dim = int(gan_params.z_dim)
+    image_size = int(gan_params.image_size)
+    batch_size = int(gan_params.batch_size)
+    num_epochs = int(gan_params.num_epoch)
+    learning_rate = float(gan_params.lr)
+
+    checkpoint_path = Path(gan_params.checkpoint_path)
+    checkpoint_path.mkdir(parents=True, exist_ok=True)
+
+    final_model = Path(gan_params.final_model)
+
+    run = initialize_wandb(
+        api_key=api_key,
+        project_name=cfg.wandb.project_name,
+        exp_name="gan_training",
+        group='gan',
+        config={
+            "image_size": image_size,
+            "batch_size": batch_size,
+            "num_epoch": num_epochs,
+            "z_dim": z_dim,
+            "lr": learning_rate,
+        },
+    )
+
+    data_dir = cfg.data.train_mel
+    transform = create_transformation(image_size)
     try:
-        dataset = CustomImageDataset(data_dir, image_size=image_size, train=True)
-        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+        dataset = SingleClassDataset(folder=data_dir, transform=transform)
+        dataloader = DataLoader(
+            dataset, batch_size=batch_size, shuffle=True, num_workers=4
+        )
         print(f"Dataset size: {len(dataset)} images")
     except Exception as e:
         print(f"Failed to load dataset: {e}")
@@ -62,7 +96,13 @@ def train_gan_model():
         G.train()
         D.train()
 
-        pbar = tqdm(dataloader, desc=f'Epoch {epoch+1}/{num_epochs}', total=len(dataloader))
+        d_losses = []
+        g_losses = []
+        r1_penalties = []
+
+        pbar = tqdm(
+            dataloader, desc=f"Epoch {epoch + 1}/{num_epochs}", total=len(dataloader)
+        )
         for i, real_images in enumerate(pbar):
             real_images = real_images.to(device)
             batch_size = real_images.size(0)
@@ -84,7 +124,9 @@ def train_gan_model():
             d_loss_real = criterion(d_real, real_labels)
             d_loss_fake = criterion(d_fake, fake_labels)
             gamma = 10.0
-            grad = torch.autograd.grad(d_real.sum(), real_images_aug, create_graph=True)[0]
+            grad = torch.autograd.grad(
+                d_real.sum(), real_images_aug, create_graph=True
+            )[0]
             r1_penalty = gamma * 0.5 * (grad.norm(2, dim=[1, 2, 3]) ** 2).mean()
             d_loss = d_loss_real + d_loss_fake + r1_penalty
 
@@ -105,39 +147,66 @@ def train_gan_model():
             g_loss.backward()
             g_opt.step()
 
-            pbar.set_postfix({'D Loss': d_loss.item(), 'G Loss': g_loss.item(), 'R1 Penalty': r1_penalty.item()})
+            pbar.set_postfix(
+                {
+                    "D Loss": d_loss.item(),
+                    "G Loss": g_loss.item(),
+                    "R1 Penalty": r1_penalty.item(),
+                }
+            )
 
+            d_losses.append(d_loss.item())
+            g_losses.append(g_loss.item())
+            r1_penalties.append(r1_penalty.item())
+
+        wandb.log(
+            {
+                "epoch": epoch + 1,
+                "avg_d_loss": np.mean(d_losses),
+                "avg_g_loss": np.mean(g_losses),
+                "avg_r1_penalty": np.mean(r1_penalties),
+            }
+        )
         # Save checkpoint
         if (epoch + 1) % 10 == 0:
             try:
-                torch.save({
-                    'epoch': epoch,
-                    'generator_state_dict': G.state_dict(),
-                    'discriminator_state_dict': D.state_dict(),
-                    'g_opt_state_dict': g_opt.state_dict(),
-                    'd_opt_state_dict': d_opt.state_dict(),
-                }, os.path.join(checkpoint_dir, f'checkpoint_epoch_{epoch+1}.pth'))
-                print(f"Checkpoint saved at epoch {epoch+1}")
+                torch.save(
+                    {
+                        "epoch": epoch,
+                        "generator_state_dict": G.state_dict(),
+                        "discriminator_state_dict": D.state_dict(),
+                        "g_opt_state_dict": g_opt.state_dict(),
+                        "d_opt_state_dict": d_opt.state_dict(),
+                    },
+                    Path(checkpoint_path, f"checkpoint_epoch_{epoch + 1}.pth"),
+                )
+                print(f"Checkpoint saved at epoch {epoch + 1}")
             except Exception as e:
                 print(f"Failed to save checkpoint: {e}")
 
+    if run is not None:
+        wandb.finish()
+
     # Save final generator
-    final_model_path = os.path.join(checkpoint_dir, 'generator_final.pth')
     try:
-        torch.save({
-            'generator_state_dict': G.state_dict(),
-            'discriminator_state_dict': D.state_dict(),
-            'generator_config': {
-                'z_dim': z_dim,
-                'image_size': image_size,
-                'learning_rate': learning_rate,
-                'num_epochs': num_epochs,
-            }
-        }, final_model_path)
-        print(f"Final model saved: {final_model_path}")
+        torch.save(
+            {
+                "generator_state_dict": G.state_dict(),
+                "discriminator_state_dict": D.state_dict(),
+                "generator_config": {
+                    "z_dim": z_dim,
+                    "image_size": image_size,
+                    "learning_rate": learning_rate,
+                    "num_epochs": num_epochs,
+                },
+            },
+            final_model,
+        )
+        print(f"Final model saved: {final_model}")
     except Exception as e:
         print(f"Failed to save final model: {e}")
     return G
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     train_gan_model()

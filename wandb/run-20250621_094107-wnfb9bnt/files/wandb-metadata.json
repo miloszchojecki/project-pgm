@@ -1,0 +1,20 @@
+{
+  "os": "Linux-5.15.0-141-generic-x86_64-with-glibc2.35",
+  "python": "CPython 3.11.12",
+  "startedAt": "2025-06-21T09:41:07.765207Z",
+  "args": [
+    "--model",
+    "gan"
+  ],
+  "program": "/home/kusnierz/repositories/project-pgm/train.py",
+  "codePath": "train.py",
+  "git": {
+    "remote": "https://github.com/miloszchojecki/project-pgm.git",
+    "commit": "f731d1390638b1b57b60a48aac713aa04cb244f9"
+  },
+  "email": "263494@student.pwr.edu.pl",
+  "root": "/home/kusnierz/repositories/project-pgm",
+  "host": "odin",
+  "executable": "/home/kusnierz/.venv/bin/python",
+  "codePathLocal": "train.py"
+}

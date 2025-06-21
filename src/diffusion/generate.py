@@ -1,12 +1,12 @@
-import os
+from omegaconf import OmegaConf
 import torch
-import torch.nn as nn
 import numpy as np
-import matplotlib.pyplot as plt
 from tqdm import tqdm
 import torchvision.utils as vutils
 
 from models import LargeConvDenoiserNetwork
+from pathlib import Path
+
 
 
 def apply(coefficients: np.array, timesteps: torch.tensor, x: torch.tensor):
@@ -122,7 +122,7 @@ def load_model(model_path, device='cpu'):
     return model
 
 
-def generate_samples(model, diffusion, num_samples=64, device='cpu'):
+def generate_samples(model, diffusion, result_path, num_samples=64, device='cpu', ):
     """Generate new samples using trained model."""
     print(f"Generating {num_samples} samples on {device}...")
     
@@ -137,25 +137,31 @@ def generate_samples(model, diffusion, num_samples=64, device='cpu'):
         samples_tensor = (samples_tensor + 1) / 2  
         samples_tensor = torch.clamp(samples_tensor, 0, 1)  
         
-        os.makedirs('/home/milosz/Desktop/project-pgm/results/diffusion/samples', exist_ok=True)
         
         for i, sample in enumerate(samples_tensor):
-            vutils.save_image(sample, f'/home/milosz/Desktop/project-pgm/results/diffusion/samples/sample_{i:03d}.png')
-        
-        print(f"Generated samples saved to: /home/milosz/Desktop/project-pgm/results/diffusion/samples/")
+            path = Path(result_path, f"sample_{i:03d}.png")
+            vutils.save_image(sample, path)
         
         return samples_tensor
 
 
 if __name__ == "__main__":
+    PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+    params_path = PROJECT_ROOT / "params.yaml"
+    
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Using device: {device}")
     
-    model_path = '/home/milosz/Desktop/project-pgm/results/diffusion/final_model.pth'
-    model = load_model(model_path, device)
+        
+    cfg = OmegaConf.load(params_path)
+    model_path = Path(cfg.train.diffusion.final_model)
+    result_path = Path(cfg.generate.diffusion.result_path)
+    result_path.mkdir(exist_ok=True)
+    
+    model = load_model(str(model_path), device)
     
     diffusion = GaussianDiffusion(num_timesteps=1000)
     
-    samples = generate_samples(model, diffusion, num_samples=64, device=device)
+    samples = generate_samples(model, diffusion,result_path, num_samples=64, device=device)
     
     print("Sample generation completed")
