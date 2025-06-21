@@ -7,7 +7,10 @@ from .metrics import compute_fid
 import numpy as np
 import torch.nn as nn
 from pathlib import Path
-from ..utils.dataset import SingleClassDataset
+from ..utils.dataset import FidClassDataset
+from ..utils.utils import initialize_wandb
+import wandb
+import os
 
 def extract_features(model: nn.Module, dataloader: DataLoader, device: str) -> np.ndarray:
     model.eval()
@@ -28,14 +31,28 @@ def fid():
     params_path = PROJECT_ROOT / "params.yaml"
     
     cfg = OmegaConf.load(params_path)
-    
     image_size = int(cfg.train.cnn.image_size)
     batch_size = int(cfg.train.cnn.batch_size)
     num_classes = int(cfg.train.cnn.num_classes)
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    
-    real_dataset = SingleClassDataset(str(cfg.data.test_mel), image_size)
-    gen_dataset = SingleClassDataset(str(cfg.generate[args.model].result_path), image_size)
+
+    log = cfg.train.cnn.log
+    if log:
+        api_key = os.getenv("WANDB_API_KEY")
+        if not api_key:
+            raise ValueError("No W&B API Key exported!")
+        run = initialize_wandb(
+            api_key=api_key,
+            project_name=cfg.wandb.project_name,
+            exp_name=f"fid_{args.model}",
+            group='fid',
+            config={
+                "image_size": image_size
+            },
+        )
+        
+    real_dataset = FidClassDataset(str(cfg.data.test_mel), image_size)
+    gen_dataset = FidClassDataset(str(cfg.generate[args.model].result_path), image_size)
     
     real_loader = DataLoader(real_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
     gen_loader = DataLoader(gen_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
@@ -50,6 +67,9 @@ def fid():
     fid_score = compute_fid(features_real, features_gen)
     
     print(f"\n FID score (using ClassicCNN features): {fid_score:.4f}")
+    if log:
+        wandb.log({"fid_score": fid_score})
+        run.finish()
 
 if __name__ == "__main__":
     fid()
