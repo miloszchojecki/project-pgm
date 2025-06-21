@@ -21,8 +21,8 @@ def main():
         from gan.train import train_gan_model
         train_gan_model()
     elif args.model == "diffusion":
-        from diffusion.train import train_diffusion
-        train_diffusion()
+        from diffusion.train import train_diffusion_model
+        train_diffusion_model()
     # elif args.model == "vae":
         # from vae.train import train_vae_model 
         # train_vae_model()
