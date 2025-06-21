@@ -2,12 +2,12 @@ import argparse
 from omegaconf import OmegaConf
 import torch
 from torch.utils.data import DataLoader
-from model import ClassicCNN
-from metrics import compute_fid
+from .model import ClassicCNN
+from .metrics import compute_fid
 import numpy as np
 import torch.nn as nn
 from pathlib import Path
-from utils.dataset import SingleClassDataset
+from ..utils.dataset import SingleClassDataset
 
 def extract_features(model: nn.Module, dataloader: DataLoader, device: str) -> np.ndarray:
     model.eval()
@@ -19,7 +19,7 @@ def extract_features(model: nn.Module, dataloader: DataLoader, device: str) -> n
             features.append(feats.cpu())
     return torch.cat(features, dim=0).numpy()
 
-def main():
+def fid():
     parser = argparse.ArgumentParser(description="Compute FID score")
     parser.add_argument('--model', type=str, required=True, help="Model used for generating images", choices=["gan", "diffusion", "vae"])
     args = parser.parse_args()
@@ -52,4 +52,4 @@ def main():
     print(f"\n FID score (using ClassicCNN features): {fid_score:.4f}")
 
 if __name__ == "__main__":
-    main()
+    fid()
