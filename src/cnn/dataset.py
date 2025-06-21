@@ -5,6 +5,12 @@ from utils.transform import create_transformation
 from utils.dataset import MelDataset
 
 
+class RemappedImageFolder(datasets.ImageFolder):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.class_to_idx = {'other': 0, 'mel': 1}
+        self.targets = [self.class_to_idx[self.classes[t]] for t in self.targets]
+
 
 def get_dataloaders(cfg, model_type):
     image_size = int(cfg.train.cnn.image_size)
@@ -13,11 +19,11 @@ def get_dataloaders(cfg, model_type):
     train_path = Path(cfg.paths.train)
     test_path = Path(cfg.paths.test)
     
-    train_dataset_real = datasets.ImageFolder(
+    train_dataset_real = RemappedImageFolder(
         root=str(train_path), 
         transform=transform
     )
-    val_dataset = datasets.ImageFolder(
+    val_dataset = RemappedImageFolder(
         root=str(test_path), 
         transform=transform
     )
