@@ -44,7 +44,7 @@ def train_gan_model():
         run = initialize_wandb(
             api_key=api_key,
             project_name=cfg.wandb.project_name,
-            exp_name="gan_training",
+            exp_name="gan_training-big",
             group='gan',
             config={
                 "image_size": image_size,

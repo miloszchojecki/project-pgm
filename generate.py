@@ -1,6 +1,5 @@
 import argparse
 import sys
-import os
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -23,9 +22,9 @@ def main():
     elif args.model == "diffusion":
         from diffusion.generate import generate
         generate()
-    # elif args.model == "vae":
-        # from vae.generate import generate 
-        # generate()
+    elif args.model == "vae":
+        from vae.generate import generate_vae_samples 
+        generate_vae_samples()
 
 if __name__ == "__main__":
     main()

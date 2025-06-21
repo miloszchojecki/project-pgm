@@ -1,4 +1,3 @@
-from turtle import forward
 import lightning as L
 import torch.nn as nn
 import torch
@@ -21,12 +20,9 @@ class Encoder(nn.Module):
             nn.Conv2d(128, 256, 4, 2, 1),         
             nn.BatchNorm2d(256),
             nn.ReLU(),
-            nn.Conv2d(256, 256, 4, 2, 1),          
-            nn.BatchNorm2d(256),
-            nn.ReLU(),
         )
-        self.fc_mu = nn.Linear(256 * 8 * 8, latent_dim)
-        self.fc_logvar = nn.Linear(256 * 8 * 8, latent_dim)
+        self.fc_mu = nn.Linear(256 * 16 * 16, latent_dim)
+        self.fc_logvar = nn.Linear(256 * 16 * 16, latent_dim)
         
     def forward(self, z):
         x = self.conv_layers(z)
@@ -62,27 +58,47 @@ class Decoder(nn.Module):
         
 
 class VAE(L.LightningModule):
-    def __init__(self, input_channels, latent_dim):
+    def __init__(self, input_channels=3, latent_dim=128, lr=1e-4, beta=0.3):
         super().__init__()
+        self.save_hyperparameters()
         self.encoder = Encoder(input_channels, latent_dim)
         self.decoder = Decoder(latent_dim, input_channels)
+        
+        self.lr = lr
+
+    def reparameterize(self, mu, logvar):
+        std = torch.sqrt(torch.exp(logvar))
+        noise = torch.randn_like(mu)
+        return mu + noise * std
 
     def train_loss(self, recon_x, x, mu, logvar):
         recon_loss = F.mse_loss(recon_x, x)
-        
         kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         
-        return recon_loss + kl_loss
-    
-    def kl_divergence(self):
-        kld = None
-        kld = 0.5 * torch.sum(torch.exp(self.logvar) + self.mu.pow(2) - 1 - self.logvar, dim=1)
-        return kld.mean()
+        return recon_loss, kl_loss, recon_loss + self.hparams.beta * kl_loss
     
     def training_step(self, batch, batch_idx):
-        x, _ = batch
-        z = self.encoder(x)
-        x_hat = self.decoder(z)
-        loss
+        x = batch
+        recon_x, mu, logvar = self(x)
+        recon_loss, kl_loss, loss = self.train_loss(recon_x, x, mu, logvar)
+        self.log("train/total_loss", loss)
+        self.log("train/kl_loss", kl_loss)
+        self.log("train/recon_loss", recon_loss)
+        return loss
         
+    def forward(self, x):
+        mu, logvar = self.encoder(x)
+        z = self.reparameterize(mu, logvar)
+        recon_x = self.decoder(z)
         
+        return recon_x, mu, logvar
+        
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=self.lr)
+    
+    def generate(self, num_samples=16, device='cuda'):
+        self.eval()
+        with torch.no_grad():
+            z = torch.randn(num_samples, self.hparams.latent_dim).to(device)
+            samples = self.decoder(z)
+        return samples

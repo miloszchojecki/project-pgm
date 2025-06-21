@@ -24,9 +24,9 @@ def main():
     elif args.model == "diffusion":
         from diffusion.train import train_diffusion_model
         train_diffusion_model()
-    # elif args.model == "vae":
-        # from vae.train import train_vae_model 
-        # train_vae_model()
+    elif args.model == "vae":
+        from vae.train import vae_train_model 
+        vae_train_model()
     elif args.model == "cnn":
         env = os.environ.copy()
         env['PYTHONPATH'] = str(PROJECT_ROOT / 'src')
