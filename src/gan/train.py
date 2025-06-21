@@ -4,7 +4,7 @@ import torch.nn as nn
 import numpy as np
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from .models import Generator, Discriminator, ADA
+from .models import Generator, Discriminator, ADA, VGGPerceptualLoss, compute_feature_matching_loss
 from pathlib import Path
 from utils.dataset import SingleClassDataset
 from utils.transform import create_transformation
@@ -12,11 +12,9 @@ from utils.utils import initialize_wandb
 import wandb
 from omegaconf import OmegaConf
 
-
 def train_gan_model():
     PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
     params_path = PROJECT_ROOT / "params.yaml"
-    
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
 
@@ -74,6 +72,8 @@ def train_gan_model():
     D = Discriminator().to(device)
     ada = ADA()
 
+    perceptual_loss_fn = VGGPerceptualLoss().to(device)
+
     def print_model_summary(model, model_name):
         total_params = sum(p.numel() for p in model.parameters())
         trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -105,7 +105,6 @@ def train_gan_model():
         for i, real_images in enumerate(pbar):
             real_images = real_images.to(device)
             batch_size = real_images.size(0)
-            print(f"Iteration {i}, Batch size: {batch_size}")  # Debug print
             z = torch.randn(batch_size, z_dim).to(device)
 
             # === Train Discriminator ===
@@ -139,7 +138,13 @@ def train_gan_model():
             z = torch.randn(batch_size, z_dim).to(device)
             fake_images = G(z)
             d_fake = D(fake_images)
-            g_loss = criterion(d_fake, real_labels)
+            g_adv_loss = criterion(d_fake, real_labels)
+
+            # Perceptual + Feature Matching Loss
+            perc_loss = perceptual_loss_fn(fake_images, real_images)
+            fm_loss = compute_feature_matching_loss(D, real_images, fake_images)
+
+            g_loss = g_adv_loss + 0.1 * perc_loss + 0.1 * fm_loss
 
             g_opt.zero_grad()
             g_loss.backward()
@@ -156,7 +161,7 @@ def train_gan_model():
             d_losses.append(d_loss.item())
             g_losses.append(g_loss.item())
             r1_penalties.append(r1_penalty.item())
-        
+
         if log:
             wandb.log(
                 {
@@ -166,6 +171,7 @@ def train_gan_model():
                     "avg_r1_penalty": np.mean(r1_penalties),
                 }
             )
+
         # Save checkpoint
         if (epoch + 1) % 10 == 0:
             try:
@@ -182,6 +188,7 @@ def train_gan_model():
                 print(f"Checkpoint saved at epoch {epoch + 1}")
             except Exception as e:
                 print(f"Failed to save checkpoint: {e}")
+
     if log:
         if run is not None:
             wandb.finish()

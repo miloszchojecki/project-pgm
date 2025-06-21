@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms as T
 import numpy as np
+from torchvision import models
+from torch.nn.utils import spectral_norm
 
 # Mapping Network
 class MappingNetwork(nn.Module):
@@ -18,7 +20,7 @@ class MappingNetwork(nn.Module):
         self.net = nn.Sequential(*layers)
 
     def forward(self, z):
-        w = self.net(z)  # Shape: [batch_size, w_dim]
+        w = self.net(z)
         return w
 
 # Modulated Convolution
@@ -50,7 +52,6 @@ class ModulatedConv2d(nn.Module):
         out = F.conv2d(x, weight, padding=self.padding, groups=batch_size)
         out = out.view(batch_size, self.out_channels, out.size(2), out.size(3))
         return out
-    
 
 # Synthesis Block
 class SynthesisBlock(nn.Module):
@@ -59,14 +60,16 @@ class SynthesisBlock(nn.Module):
         self.conv1 = ModulatedConv2d(in_channels, out_channels, kernel_size=3)
         self.conv2 = ModulatedConv2d(out_channels, out_channels, kernel_size=3)
         self.to_rgb = ModulatedConv2d(out_channels, 3, kernel_size=1, padding=0)
-        self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False) if resolution > 4 else nn.Identity()
-        self.rgb_upsample = nn.Upsample(size=(final_resolution, final_resolution), mode='bilinear', align_corners=False)        
+        self.upsample = nn.Sequential(
+            nn.Upsample(scale_factor=2, mode='nearest'),
+            nn.Conv2d(out_channels, out_channels, 3, padding=1)
+        ) if resolution > 4 else nn.Identity()
+        self.rgb_upsample = nn.Upsample(size=(final_resolution, final_resolution), mode='bilinear', align_corners=False)
         self.noise_scale1 = nn.Parameter(torch.zeros(1))
         self.noise_scale2 = nn.Parameter(torch.zeros(1))
-        self.out_channels = out_channels  # Store for noise generation
+        self.out_channels = out_channels
 
     def forward(self, x, w, noise1=None, noise2=None):
-        # Generate noise with output channels of conv1 and conv2
         if noise1 is None:
             noise1 = torch.randn(x.size(0), self.out_channels, x.size(2), x.size(3), device=x.device)
         if noise2 is None:
@@ -112,7 +115,17 @@ class Generator(nn.Module):
             x, rgb_i = block(x, w)
             rgb = rgb_i if rgb is None else rgb + rgb_i
         return torch.tanh(rgb)
-    
+
+# Minibatch Stddev
+class MinibatchStdDev(nn.Module):
+    def forward(self, x):
+        std = torch.std(x, dim=0, keepdim=True) + 1e-8
+        mean_std = std.mean()
+        shape = list(x.shape)
+        shape[1] = 1
+        std_feat = mean_std.expand(*shape)
+        return torch.cat([x, std_feat], dim=1)
+
 # Discriminator
 class Discriminator(nn.Module):
     def __init__(self, num_channels=[16, 32, 64, 128, 256, 256]):
@@ -121,21 +134,25 @@ class Discriminator(nn.Module):
         in_channels = 3
         for out_channels in num_channels:
             layers.extend([
-                nn.Conv2d(in_channels, out_channels, 3, stride=2, padding=1),
+                spectral_norm(nn.Conv2d(in_channels, out_channels, 3, stride=2, padding=1)),
                 nn.LeakyReLU(0.2, inplace=True),
-                nn.Conv2d(out_channels, out_channels, 3, padding=1),
+                spectral_norm(nn.Conv2d(out_channels, out_channels, 3, padding=1)),
                 nn.LeakyReLU(0.2, inplace=True)
             ])
             in_channels = out_channels
         self.net = nn.Sequential(*layers)
-        self.fc = nn.Linear(num_channels[-1] * 4 * 4, 1)
+        self.stddev = MinibatchStdDev()
+        self.final_fc = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear((num_channels[-1] + 1) * 4 * 4, 1)
+        )
 
     def forward(self, x):
         x = self.net(x)
-        x = x.view(x.size(0), -1)
-        return self.fc(x)
+        x = self.stddev(x)
+        return self.final_fc(x)
 
-# Adaptive Discriminator Augmentation (ADA)
+# ADA (unchanged)
 class ADA:
     def __init__(self, aug_prob=0.0):
         self.aug_prob = aug_prob
@@ -158,3 +175,33 @@ class ADA:
             x_aug = [self.aug(img) if m else img for img, m in zip(x, mask)]
             x = torch.stack(x_aug)
         return x
+
+# VGG Perceptual Loss
+class VGGPerceptualLoss(nn.Module):
+    def __init__(self, resize=True):
+        super().__init__()
+        vgg = models.vgg16(pretrained=True).features[:16].eval()
+        for param in vgg.parameters():
+            param.requires_grad = False
+        self.vgg = vgg
+        self.resize = resize
+
+    def forward(self, real, fake):
+        if self.resize:
+            real = F.interpolate(real, size=(224, 224), mode='bilinear', align_corners=False)
+            fake = F.interpolate(fake, size=(224, 224), mode='bilinear', align_corners=False)
+        return F.l1_loss(self.vgg(real), self.vgg(fake))
+
+# Feature Matching
+def compute_feature_matching_loss(D, real_images, fake_images):
+    real_features = []
+    fake_features = []
+    x_real = real_images
+    x_fake = fake_images
+    for layer in D.net:
+        x_real = layer(x_real)
+        x_fake = layer(x_fake)
+        if isinstance(layer, nn.LeakyReLU):
+            real_features.append(x_real)
+            fake_features.append(x_fake)
+    return sum(F.l1_loss(f, r.detach()) for f, r in zip(fake_features, real_features))
