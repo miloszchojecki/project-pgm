@@ -4,7 +4,7 @@ import torch.nn as nn
 import numpy as np
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from .models import Generator, Discriminator, ADA, PerceptualLoss
+from .models import Generator, Discriminator, ADA
 from pathlib import Path
 from utils.dataset import SingleClassDataset
 from utils.transform import create_transformation
@@ -90,7 +90,6 @@ def train_gan_model():
 
     # Loss
     criterion = nn.BCEWithLogitsLoss()
-    perceptual_loss = PerceptualLoss().to(device)
 
     for epoch in range(num_epochs):
         G.train()
@@ -140,8 +139,7 @@ def train_gan_model():
             z = torch.randn(batch_size, z_dim).to(device)
             fake_images = G(z)
             d_fake = D(fake_images)
-            perceptual = perceptual_loss(fake_images, real_images)
-            g_loss = criterion(d_fake, real_labels) + 0.1 * perceptual
+            g_loss = criterion(d_fake, real_labels)
 
             g_opt.zero_grad()
             g_loss.backward()
