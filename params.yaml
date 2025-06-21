@@ -30,7 +30,7 @@ train:
     image_size: 256
     num_epoch: 200
     lr: 2e-4
-    z_dim: 512
+    z_dim: 256
     checkpoint_path: ${paths.checkpoints}/gan/
     final_model: ${paths.results}/models/gan/final_model.pth
     log: True
@@ -57,6 +57,7 @@ train:
       vae: ${paths.results}/models/cnn/final_model_vae.pth
 
 generate:
+  num_samples: 100
   diffusion:
     model_checkpoint: TRZEBA PODAĆ
     result_path: ${paths.results}/diffusion/samples
