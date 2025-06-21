@@ -8,8 +8,6 @@ RUN apt-get update && \
     apt-get install -y build-essential git \
     pip install --upgrade pip wheel setuptools
 
-RUN pip install dvc
-
 COPY requirements.txt /app
 
 RUN pip install -r requirements.txt 
