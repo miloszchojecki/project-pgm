@@ -1,6 +1,0 @@
-[core]
-    remote = hfremote
-['remote "myremote"']
-    url = gdrive://1FIHiP5R8WrJW6QlwJS8YXTMKrga_Xri_
-['remote "hfremote"']
-    url = https://huggingface.co/datasets/kusnierz/project-pgm/resolve/main
