@@ -267,11 +267,7 @@ def train_diffusion_model():
 
     return model, diffusion
 
-def train_diffusion():
-    model, diffusion = train_diffusion_model()
-    print("Training and generation completed!")
-
 
 if __name__ == "__main__":
-    train_diffusion()
+    train_diffusion_model()
     
