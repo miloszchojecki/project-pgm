@@ -50,9 +50,6 @@ def train_model(
 
 
 def main():
-    api_key = os.getenv("WANDB_API_KEY")
-    if not api_key:
-        raise ValueError("No W&B API Key exported!")
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -73,25 +70,28 @@ def main():
     batch_size = int(cfg.train.cnn.batch_size)
     learning_rate = float(cfg.train.cnn.lr)
     num_epochs = int(cfg.train.cnn.num_epochs)
-
+    log = cfg.train.cnn.log
     model_path = cfg.train.cnn.final_model[args.model]
 
     model = ClassicCNN(num_classes=num_classes).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-
-    run = initialize_wandb(
-        api_key=api_key,
-        project_name=cfg.wandb.project_name,
-        exp_name="diffusion_training",
-        group='cnn',
-        config={
-            "image_size": image_size,
-            "batch_size": batch_size,
-            "num_epoch": num_epochs,
-            "lr": learning_rate,
-        },
-    )
+    if log:
+        api_key = os.getenv("WANDB_API_KEY")
+        if not api_key:
+            raise ValueError("No W&B API Key exported!")
+        run = initialize_wandb(
+            api_key=api_key,
+            project_name=cfg.wandb.project_name,
+            exp_name="diffusion_training",
+            group='cnn',
+            config={
+                "image_size": image_size,
+                "batch_size": batch_size,
+                "num_epoch": num_epochs,
+                "lr": learning_rate,
+            },
+        )
 
     for epoch in range(num_epochs):
         train_loss, train_acc = train_model(
@@ -100,25 +100,26 @@ def main():
         print(
             f"[{args.model}] Epoch {epoch + 1} complete: Loss = {train_loss:.4f}, Accuracy = {train_acc:.2f}%"
         )
-        wandb.log(
-            {
-                "epoch": epoch + 1,
-                "train_loss": train_loss,
-                "train_acc": train_acc,
-            }
-        )
+        if log:
+            wandb.log(
+                {
+                    "epoch": epoch + 1,
+                    "train_loss": train_loss,
+                    "train_acc": train_acc,
+                }
+            )
 
     val_acc, labels, preds = validate_model(model, val_loader, device)
     print(f"[{args.model}] Validation Accuracy: {val_acc:.2f}%")
-    wandb.log(
-        {
-            "epoch": num_epochs,
-            "val_acc": val_acc,
-        }
-    )
-
-    if run is not None:
-        wandb.finish()
+    if log:
+        wandb.log(
+            {
+                "epoch": num_epochs,
+                "val_acc": val_acc,
+            }
+        )
+        if run is not None:
+            wandb.finish()
         
     torch.save(model.state_dict(), str(model_path))
     print(f"Model saved to {model_path}")

@@ -23,5 +23,3 @@ clean:
 
 
 
-train_gan
-
