@@ -17,10 +17,6 @@ def train_gan_model():
     PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
     params_path = PROJECT_ROOT / "params.yaml"
     
-    api_key = os.getenv("WANDB_API_KEY")
-    if not api_key:
-        raise ValueError("No W&B API Key exported!")
-
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
 
@@ -37,25 +33,29 @@ def train_gan_model():
     batch_size = int(gan_params.batch_size)
     num_epochs = int(gan_params.num_epoch)
     learning_rate = float(gan_params.lr)
-
+    log = gan_params.log
     checkpoint_path = Path(gan_params.checkpoint_path)
     checkpoint_path.mkdir(parents=True, exist_ok=True)
 
     final_model = Path(gan_params.final_model)
 
-    run = initialize_wandb(
-        api_key=api_key,
-        project_name=cfg.wandb.project_name,
-        exp_name="gan_training",
-        group='gan',
-        config={
-            "image_size": image_size,
-            "batch_size": batch_size,
-            "num_epoch": num_epochs,
-            "z_dim": z_dim,
-            "lr": learning_rate,
-        },
-    )
+    if log:
+        api_key = os.getenv("WANDB_API_KEY")
+        if not api_key:
+            raise ValueError("No W&B API Key exported!")
+        run = initialize_wandb(
+            api_key=api_key,
+            project_name=cfg.wandb.project_name,
+            exp_name="gan_training",
+            group='gan',
+            config={
+                "image_size": image_size,
+                "batch_size": batch_size,
+                "num_epoch": num_epochs,
+                "z_dim": z_dim,
+                "lr": learning_rate,
+            },
+        )
 
     data_dir = cfg.data.train_mel
     transform = create_transformation(image_size)
@@ -158,15 +158,16 @@ def train_gan_model():
             d_losses.append(d_loss.item())
             g_losses.append(g_loss.item())
             r1_penalties.append(r1_penalty.item())
-
-        wandb.log(
-            {
-                "epoch": epoch + 1,
-                "avg_d_loss": np.mean(d_losses),
-                "avg_g_loss": np.mean(g_losses),
-                "avg_r1_penalty": np.mean(r1_penalties),
-            }
-        )
+        
+        if log:
+            wandb.log(
+                {
+                    "epoch": epoch + 1,
+                    "avg_d_loss": np.mean(d_losses),
+                    "avg_g_loss": np.mean(g_losses),
+                    "avg_r1_penalty": np.mean(r1_penalties),
+                }
+            )
         # Save checkpoint
         if (epoch + 1) % 10 == 0:
             try:
@@ -183,9 +184,9 @@ def train_gan_model():
                 print(f"Checkpoint saved at epoch {epoch + 1}")
             except Exception as e:
                 print(f"Failed to save checkpoint: {e}")
-
-    if run is not None:
-        wandb.finish()
+    if log:
+        if run is not None:
+            wandb.finish()
 
     # Save final generator
     try:

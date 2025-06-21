@@ -150,7 +150,7 @@ class GaussianDiffusion:
         self.setup_noise_scheduler(self.betas)
 
 
-def train_diffusion_model(api_key):
+def train_diffusion_model():
     """Main training function."""
     PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
     params_path = PROJECT_ROOT / "params.yaml"
@@ -169,22 +169,26 @@ def train_diffusion_model(api_key):
     batch_size = int(diff_params.batch_size)
     num_epochs = int(diff_params.num_epoch)
     learning_rate = float(diff_params.lr)
-
+    log = diff_params.log
     checkpoint_path = Path(diff_params.checkpoint_path)
     checkpoint_path.mkdir(parents=True, exist_ok=True)
 
-    run = initialize_wandb(
-        api_key=api_key,
-        project_name=cfg.wandb.project_name,
-        exp_name="diffusion_training",
-        group='diffusion',
-        config={
-            "image_size": image_size,
-            "batch_size": batch_size,
-            "num_epoch": num_epochs,
-            "lr": learning_rate,
-        },
-    )
+    if log:
+        api_key = os.getenv("WANDB_API_KEY")
+        if not api_key:
+            raise ValueError("No W&B API Key exported!")
+        run = initialize_wandb(
+            api_key=api_key,
+            project_name=cfg.wandb.project_name,
+            exp_name="diffusion_training",
+            group='diffusion',
+            config={
+                "image_size": image_size,
+                "batch_size": batch_size,
+                "num_epoch": num_epochs,
+                "lr": learning_rate,
+            },
+        )
 
     final_model = Path(diff_params.final_model)
 
@@ -230,8 +234,8 @@ def train_diffusion_model(api_key):
         losses.append(avg_loss)
 
         print(f"Epoch {epoch + 1}/{num_epochs}, Average Loss: {avg_loss:.4f}")
-
-        wandb.log({"epoch": epoch + 1, "avg_loss": avg_loss})
+        if log:
+            wandb.log({"epoch": epoch + 1, "avg_loss": avg_loss})
 
         if (epoch + 1) % 10 == 0:
             checkpoint = Path(checkpoint_path, f"_epoch_{epoch + 1}.pth")
@@ -245,9 +249,9 @@ def train_diffusion_model(api_key):
                 checkpoint,
             )
             print(f"Checkpoint saved: {checkpoint}")
-
-    if run is not None:
-        wandb.finish()
+    if log:
+        if run is not None:
+            wandb.finish()
 
     torch.save(
         {
@@ -264,13 +268,10 @@ def train_diffusion_model(api_key):
     return model, diffusion
 
 def train_diffusion():
-    api_key = os.getenv("WANDB_API_KEY")
-    if not api_key:
-        raise ValueError("No W&B API Key exported!")
-    model, diffusion = train_diffusion_model(api_key)
+    model, diffusion = train_diffusion_model()
     print("Training and generation completed!")
 
 
 if __name__ == "__main__":
-    main()
+    train_diffusion()
     

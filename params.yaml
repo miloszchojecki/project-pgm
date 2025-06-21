@@ -13,7 +13,7 @@ data:
   test_other: ${paths.test}/other
 
 wandb:
-  project_name: PGM-Project
+  project_name: pgm-team/pgm-projekcik
 
 
 train:
@@ -24,6 +24,7 @@ train:
     lr: 1e-4
     checkpoint_path: ${paths.checkpoints}/diffusion/
     final_model: ${paths.results}/models/diffusion/final_model.pth
+    log: True
   gan:
     batch_size: 16
     image_size: 256
@@ -32,6 +33,7 @@ train:
     z_dim: 512
     checkpoint_path: ${paths.checkpoints}/gan/
     final_model: ${paths.results}/models/gan/final_model.pth
+    log: True
   vae:
     batch_size: 1
     image_size: 256
@@ -39,6 +41,7 @@ train:
     lr: 1e-4
     checkpoint_path: ${paths.checkpoints}/vae/
     final_model: ${paths.results}/models/vae/final_model.pth
+    log: True
   cnn:
     batch_size: 64
     num_classes: 2
@@ -46,6 +49,7 @@ train:
     num_epoch: 2
     lr: 1e-4
     checkpoint_path: ${paths.checkpoints}/cnn/
+    log: True
     final_model:
       base: ${paths.results}/models/cnn/final_model_base.pth
       gan: ${paths.results}/models/cnn/final_model_gan.pth

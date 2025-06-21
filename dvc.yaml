@@ -1,33 +1,26 @@
-stages:
-  prepare_data:
-    cmd: make all 
-    deps:
-      - Makefile
-    outs:
-      - data/ 
+# stages:
+#   train_gan:
+#     cmd: python train.py --model gan
+#     deps:
+#       - train.py
+#       - src/gan/
+#       - src/utils/
+#       - data/
+#     params:
+#       - train.gan 
+#       - train.data
+#     outs:
+#       - results/models/gan/
 
-  train_gan:
-    cmd: python train.py --model gan
-    deps:
-      - train.py
-      - src/gan/
-      - src/utils/
-      - data/
-    params:
-      - train.gan 
-      - train.data
-    outs:
-      - results/models/gan/
-
-  train_diffusion:
-    cmd: python train.py --model diffusion
-    deps:
-      - train.py
-      - src/diffusion/
-      - src/utils/
-      - data/
-    params:
-      - train.diffusion
-      - train.data
-    outs:
-      - results/models/diffusion/
+#   train_diffusion:
+#     cmd: python train.py --model diffusion
+#     deps:
+#       - train.py
+#       - src/diffusion/
+#       - src/utils/
+#       - data/
+#     params:
+#       - train.diffusion
+#       - train.data
+#     outs:
+#       - results/models/diffusion/
