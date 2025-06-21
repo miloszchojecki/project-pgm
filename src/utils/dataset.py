@@ -2,6 +2,25 @@ from torch.utils.data import Dataset
 from pathlib import Path
 from PIL import Image
 import torch
+from torchvision import transforms
+
+class FidClassDataset(Dataset):
+    def __init__(self, image_dir, image_size):
+        self.image_paths = list(Path(image_dir).glob("*"))
+        self.transform = transforms.Compose([
+            transforms.Resize((image_size, image_size)),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
+    def __len__(self):
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+        img_path = self.image_paths[idx]
+        img = Image.open(img_path).convert("RGB") 
+        img = self.transform(img)
+        return img
 
 class SingleClassDataset(Dataset):
     def __init__(self, folder, transform=None):
