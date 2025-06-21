@@ -22,3 +22,10 @@ where:
 * ` model_name`: ["cnn", "gan", "vae", "diffusion"] specifies which model to train
 * `variant_name`: ["base", "gan", "vae", "diffusion"] is **optional** parameter which is used only for CNN training.
 
+4. To run genrating samples:
+```
+python generate.py --model <model_name>
+```
+
+where:
+* ` model_name`: ["gan", "vae", "diffusion"] specifies which model used for generating samples

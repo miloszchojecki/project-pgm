@@ -4,7 +4,7 @@ import numpy as np
 from tqdm import tqdm
 import torchvision.utils as vutils
 
-from models import LargeConvDenoiserNetwork
+from .models import LargeConvDenoiserNetwork
 from pathlib import Path
 
 
@@ -143,6 +143,27 @@ def generate_samples(model, diffusion, result_path, num_samples=64, device='cpu'
             vutils.save_image(sample, path)
         
         return samples_tensor
+    
+def generate():
+    """Main function to generate samples using the diffusion model."""
+    PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+    params_path = PROJECT_ROOT / "params.yaml"
+    
+    cfg = OmegaConf.load(params_path)
+    model_path = Path(cfg.train.diffusion.final_model)
+    result_path = Path(cfg.generate.diffusion.result_path)
+    result_path.mkdir(exist_ok=True)
+    
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print(f"Using device: {device}")
+    
+    model = load_model(str(model_path), device)
+    
+    diffusion = GaussianDiffusion(num_timesteps=1000)
+    
+    generate_samples(model, diffusion, result_path, num_samples=cfg.generate.num_samples, device=device)
+    
+    print("Sample generation completed")
 
 
 if __name__ == "__main__":
