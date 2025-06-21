@@ -1,7 +1,0 @@
-{"time":"2025-06-21T09:53:46.428827655Z","level":"INFO","msg":"stream: starting","core version":"0.20.1","symlink path":"/home/kusnierz/repositories/project-pgm/wandb/run-20250621_095346-nnm4655n/logs/debug-core.log"}
-{"time":"2025-06-21T09:53:46.703181295Z","level":"INFO","msg":"stream: created new stream","id":"nnm4655n"}
-{"time":"2025-06-21T09:53:46.703249894Z","level":"INFO","msg":"stream: started","id":"nnm4655n"}
-{"time":"2025-06-21T09:53:46.703287166Z","level":"INFO","msg":"writer: Do: started","stream_id":"nnm4655n"}
-{"time":"2025-06-21T09:53:46.703349989Z","level":"INFO","msg":"handler: started","stream_id":"nnm4655n"}
-{"time":"2025-06-21T09:53:46.703409576Z","level":"INFO","msg":"sender: started","stream_id":"nnm4655n"}
-{"time":"2025-06-21T09:53:46.922600497Z","level":"INFO","msg":"Starting system monitor"}
