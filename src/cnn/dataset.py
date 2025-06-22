@@ -23,6 +23,7 @@ def get_dataloaders(cfg, model_type):
         root=str(train_path), 
         transform=transform
     )
+    print(f"Path to training data: {train_path}")
     val_dataset = RemappedImageFolder(
         root=str(test_path), 
         transform=transform
@@ -39,7 +40,7 @@ def get_dataloaders(cfg, model_type):
             mel_class_idx=mel_class_idx
         )
         train_dataset = ConcatDataset([train_dataset_real, gan_dataset])
-        print(f"GAN data added: {len(gan_dataset)} samples")
+        print(f"{model_type} data added: {len(gan_dataset)} samples")
     elif model_type == "base":
         train_dataset = train_dataset_real
         print("Using only real data for training")

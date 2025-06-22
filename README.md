@@ -1,31 +1,70 @@
-# project-pgm
+# Synthetic Melanoma Image Generation and Evaluation
 
-1. Export your Weights&Biases API Key if you want to track your training and evaluation metrics
+This project explores synthetic image generation for melanoma using a variety of deep generative models, including CNN-based, GANs, VAEs, and diffusion models. The primary goal is to assess how well these generated images can support melanoma classification tasks—specifically, distinguishing melanoma from non-melanoma samples.
 
+We evaluate the models both qualitatively (via sample generation) and quantitatively (using the FID score and downstream classification performance).
+
+---
+
+## 1. Optional: Enable Weights & Biases Logging
+
+To track training and evaluation metrics with [Weights & Biases](https://wandb.ai), export your API key:
+
+```bash
+export WANDB_API_KEY=<your_api_key>
 ```
-export WANDB_API_KEY=<api_key>
 
-```
+---
 
-2. Dowload data. You have to be in main directory and run:
-```
+## 2. Download and Prepare the Dataset
+
+From the main project directory, run:
+
+```bash
 make all
 ```
-This will run script which will download and prepare data
 
+This will execute a script that downloads and prepares the dataset for training.
 
-3. To run training type:
-```
+---
+
+## 3. Train a Model
+
+Run the following command to train a model:
+
+```bash
 python train.py --model <model_name> --variant <variant_name>
 ```
-where:
-* ` model_name`: ["cnn", "gan", "vae", "diffusion"] specifies which model to train
-* `variant_name`: ["base", "gan", "vae", "diffusion"] is **optional** parameter which is used only for CNN training.
 
-4. To run genrating samples:
-```
+**Arguments:**
+
+* `--model`: Required. Choose from `cnn`, `gan`, `vae`, `diffusion`.
+* `--variant`: Optional. Only applicable when `--model cnn`. Choose from `base`, `gan`, `vae`, `diffusion`.
+
+---
+
+## 4. Generate Samples
+
+To generate samples with a trained model:
+
+```bash
 python generate.py --model <model_name>
 ```
 
-where:
-* ` model_name`: ["gan", "vae", "diffusion"] specifies which model used for generating samples
+**Arguments:**
+
+* `--model`: Required. Choose from `gan`, `vae`, `diffusion`.
+
+---
+
+## 5. Evaluate with FID
+
+To compute the Fréchet Inception Distance (FID) score:
+
+```bash
+python fid.py --model <model_name>
+```
+
+**Arguments:**
+
+* `--model`: Required. Choose from `gan`, `vae`, `diffusion`.
