@@ -89,7 +89,7 @@ def main():
         run = initialize_wandb(
             api_key=api_key,
             project_name=cfg.wandb.project_name,
-            exp_name="cnn_training",
+            exp_name=f"cnn_training_{args.model}",
             group='cnn',
             config={
                 "image_size": image_size,
@@ -145,7 +145,9 @@ def main():
         )
         if run is not None:
             wandb.finish()
-        
+
+    model_path = Path(cfg.train.cnn.final_model[args.model])
+    model_path.parent.mkdir(parents=True, exist_ok=True)
     torch.save(model.state_dict(), str(model_path))
     print(f"Model saved to {model_path}")
 
