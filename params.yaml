@@ -37,10 +37,12 @@ train:
   vae:
     batch_size: 32
     image_size: 256
-    num_epoch: 50
-    latent_dim: 128
-    lr: 1e-4
-    beta: 0.4
+    num_epoch: 100
+    latent_dim: 64
+    lr: 1e-5
+    beta: 1.0
+    kl_anneal_epochs: 20
+    use_perceptual_loss: False
     checkpoint_path: ${paths.checkpoints}/vae/
     final_model: ${paths.results}/models/vae/final_model.pth
     log: True
@@ -59,7 +61,7 @@ train:
       vae: ${paths.results}/models/cnn/final_model_vae.pth
 
 generate:
-  num_samples: 100
+  num_samples: 5
   diffusion:
     model_checkpoint: TRZEBA PODAĆ
     result_path: ${paths.results}/diffusion/samples

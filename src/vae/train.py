@@ -8,6 +8,7 @@ from .model import VAE
 from .dataset import VAEDataModule
 from lightning.pytorch.loggers import WandbLogger
 import wandb
+from lightning.pytorch.callbacks import RichProgressBar
 
 def vae_train_model():
     PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -27,8 +28,12 @@ def vae_train_model():
     num_epochs = int(vae_params.num_epoch)
     learning_rate = float(vae_params.lr)
     latent_dim = int(vae_params.latent_dim)
-    beta = int(vae_params.beta)
+    beta = float(vae_params.beta)
+    kl_anneal_epochs = int(vae_params.kl_anneal_epochs)
+    use_perceptual = vae_params.use_perceptual_loss
     log = vae_params.log
+    
+    
     checkpoint_path = Path(vae_params.checkpoint_path)
     checkpoint_path.mkdir(parents=True, exist_ok=True)
 
@@ -49,6 +54,7 @@ def vae_train_model():
         logger = WandbLogger(
             project=cfg.wandb.project_name,
             name="vae_training",
+            tags=["bce-loss", "perceptual", "increasing-beta", "kl-div"],
             group='vae',
             config={
                 "image_size": image_size,
@@ -56,17 +62,20 @@ def vae_train_model():
                 "num_epoch": num_epochs,
                 "lr": learning_rate,
                 "beta": beta,
-                "latent_dim": latent_dim
-                
+                "latent_dim": latent_dim,
+                "perceptual_loss": use_perceptual,
+                "kl_anneal_epochs": kl_anneal_epochs
             }
         )
         
-    model = VAE(latent_dim=latent_dim, lr=learning_rate, beta=beta)
+ 
+    model = VAE(latent_dim=latent_dim, lr=learning_rate, beta=beta, use_perceptual=use_perceptual, kl_epochs=kl_anneal_epochs)
     trainer = Trainer(
         max_epochs=num_epochs,
         accelerator=device,
         logger=logger,
-        default_root_dir=checkpoint_path
+        default_root_dir=checkpoint_path,
+        callbacks=[RichProgressBar()],
     )
     
     trainer.fit(model, datamodule)

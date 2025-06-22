@@ -16,9 +16,10 @@ def generate_vae_samples():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     
     model = VAE(
-        input_channels=3,
-        latent_dim=cfg.train.vae.latent_dim,
-        lr=cfg.train.vae.lr
+        latent_dim=int(cfg.train.vae.latent_dim),
+        lr=float(cfg.train.vae.lr),
+        beta = float(cfg.train.vae.beta),
+        use_perceptual = bool(cfg.train.vae.use_perceptual_loss)
     )
     
     # Load weights
@@ -37,9 +38,8 @@ def generate_vae_samples():
     with torch.no_grad():
         for i in range(0, num_samples, batch_size):
             current_batch_size = min(batch_size, num_samples - i)
-            z = torch.randn(current_batch_size, latent_dim).to(device)
             
-            generated_images = model.decoder(z)
+            generated_images = model.generate(num_samples=current_batch_size, device=device)
             generated_images = (generated_images + 1) / 2
 
             for j in range(current_batch_size):
