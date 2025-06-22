@@ -53,13 +53,20 @@ def fid():
         
     real_dataset = FidClassDataset(str(cfg.data.test_mel), image_size)
     gen_dataset = FidClassDataset(str(cfg.generate[args.model].result_path), image_size)
-    
+
+    print("Real data path:", cfg.data.test_mel)
+    print("Generated data path:", cfg.generate[args.model].result_path)
+
     real_loader = DataLoader(real_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
     gen_loader = DataLoader(gen_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
-    
+
+    print("Real dataset size:", len(real_dataset))
+    print("Generated dataset size:", len(gen_dataset))
+
     model = ClassicCNN(num_classes=num_classes)
     
     model.load_state_dict(torch.load(str(cfg.train.cnn.final_model.base), map_location=device))
+    print("Model loaded from:", cfg.train.cnn.final_model.base)
     model.to(device)
     
     features_real = extract_features(model, real_loader, device)
