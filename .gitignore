@@ -6,3 +6,7 @@ data/*
 results/*
 experiments/*
 wandb/
+
+!data/.gitkeep
+!results/.gitkeep
+!experiments/.gitkeep

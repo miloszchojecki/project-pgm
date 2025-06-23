@@ -4,6 +4,8 @@ This project explores synthetic image generation for melanoma using a variety of
 
 We evaluate the models both qualitatively (via sample generation) and quantitatively (using the FID score and downstream classification performance).
 
+**Configuration Management:** All training parameters, model settings, and paths are managed through the `params.yaml` file located in the project root directory.
+
 ---
 
 ## 1. Optional: Enable Weights & Biases Logging
@@ -13,6 +15,7 @@ To track training and evaluation metrics with [Weights & Biases](https://wandb.a
 ```bash
 export WANDB_API_KEY=<your_api_key>
 ```
+Alternatively, you can disable logging by setting `log: False` in the `params.yaml` file.
 
 ---
 
