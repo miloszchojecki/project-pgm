@@ -6,6 +6,10 @@ We evaluate the models both qualitatively (via sample generation) and quantitati
 
 **Configuration Management:** All training parameters, model settings, and paths are managed through the `params.yaml` file located in the project root directory.
 
+**Results & Models:** Trained models, generated samples, and evaluation results are stored and available for download at [drive](https://drive.google.com/drive/folders/1FIHiP5R8WrJW6QlwJS8YXTMKrga_Xri_?usp=sharing).
+
+
+
 ---
 
 ## 1. Optional: Enable Weights & Biases Logging
