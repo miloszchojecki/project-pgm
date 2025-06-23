@@ -2,7 +2,7 @@
 *.pdf
 dataset
 __pycache__
-/data
-/results
-/experiments
+data/*
+results/*
+experiments/*
 wandb/
