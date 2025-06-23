@@ -13,9 +13,7 @@ from lightning.pytorch.callbacks import RichProgressBar
 def vae_train_model():
     PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
     params_path = PROJECT_ROOT / "params.yaml"
-    
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"Using device: {device}")
 
     torch.manual_seed(123)
     np.random.seed(123)
@@ -33,19 +31,16 @@ def vae_train_model():
     use_perceptual = vae_params.use_perceptual_loss
     log = vae_params.log
     
-    
     checkpoint_path = Path(vae_params.checkpoint_path)
     checkpoint_path.mkdir(parents=True, exist_ok=True)
-
     final_model = Path(vae_params.final_model)
 
     datamodule = VAEDataModule(
         train_dir=cfg.data.train_mel,
-        val_dir=cfg.data.test_mel,  # Lub stwórz osobny val set
+        val_dir=cfg.data.test_mel,
         batch_size=batch_size,
         image_size=image_size
     )
-
 
     if log:
         api_key = os.getenv("WANDB_API_KEY")
@@ -68,14 +63,15 @@ def vae_train_model():
             }
         )
         
- 
-    model = VAE(latent_dim=latent_dim, lr=learning_rate, beta=beta, use_perceptual=use_perceptual, kl_epochs=kl_anneal_epochs)
+    model = VAE(latent_dim=latent_dim, lr=learning_rate, beta=beta, use_perceptual=use_perceptual, kl_epochs=kl_anneal_epochs, image_size=image_size)
     trainer = Trainer(
         max_epochs=num_epochs,
         accelerator=device,
-        logger=logger,
+        logger=logger if log else None,
         default_root_dir=checkpoint_path,
         callbacks=[RichProgressBar()],
+        gradient_clip_val=1.0,
+        val_check_interval=0.25,
     )
     
     trainer.fit(model, datamodule)
@@ -83,6 +79,7 @@ def vae_train_model():
     if log:
         if logger is not None:
             wandb.finish()
+    
     model_dir = final_model.parent
     model_dir.mkdir(exist_ok=True)
     torch.save(model.state_dict(), final_model)

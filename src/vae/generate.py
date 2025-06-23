@@ -22,7 +22,6 @@ def generate_vae_samples():
         use_perceptual = bool(cfg.train.vae.use_perceptual_loss)
     )
     
-    # Load weights
     model.load_state_dict(torch.load(final_model, map_location=device))
     model = model.to(device)
     model.eval()
@@ -31,7 +30,6 @@ def generate_vae_samples():
     
     print(f"Generating {num_samples} samples...")
     
-    # Generate samples in batches
     batch_size = 16
     sample_idx = 0
     
