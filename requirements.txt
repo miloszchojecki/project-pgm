@@ -1,11 +1,12 @@
 diffusers==0.34.0.dev0
 lightning==2.2.4
-numpy==2.3.0
+numpy==2.3.1
 omegaconf==2.3.0
 Pillow==11.2.1
 PyYAML==6.0.2
 scikit_learn==1.7.0
-scipy==1.15.3
+scipy==1.16.0
 torch==2.2.2
 torchvision==0.17.2
 tqdm==4.67.1
+gdown
